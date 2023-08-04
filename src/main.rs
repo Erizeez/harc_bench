@@ -34,6 +34,8 @@ async fn pixel_receiver(width: usize, height: usize, buffer: Buffer) {
         panic!("{}", e);
     });
 
+    window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let shared_buffer = &mut *buffer.get();
 
