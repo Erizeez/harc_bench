@@ -17,5 +17,5 @@ First release is ready.
 ## Usage
 
 ```bash
-cargo run [resolution_width]
+cargo run [resolution_width] [aspect_ratio] [samples_per_pixel] [max_depth] [vfov]
 ```

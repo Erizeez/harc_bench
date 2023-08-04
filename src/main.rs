@@ -15,9 +15,10 @@ use tokio::runtime::Runtime;
 use crate::ray_tracer::{render::main_render, scene::example_1::generate_example_scene_1};
 
 const DEFAULT_IMAGE_WIDTH: u32 = 3840;
-const ASPECT_RATIO: f64 = 16.0 / 9.0;
-const SAMPLES_PER_PIXEL: u32 = 10;
-const MAX_DEPTH: u32 = 50;
+const DEFAULT_ASPECT_RATIO: f64 = 16.0 / 9.0;
+const DEFAULT_SAMPLES_PER_PIXEL: u32 = 20;
+const DEFAULT_MAX_DEPTH: u32 = 50;
+const DEFAULT_VFOV: f64 = 20.0;
 
 // A func recv from Channel and loop
 async fn pixel_receiver(width: usize, height: usize, buffer: Buffer) {
@@ -51,13 +52,33 @@ async fn pixel_receiver(width: usize, height: usize, buffer: Buffer) {
 #[tokio::main]
 async fn main() {
     let start = std::time::Instant::now();
-    // Receive a interger and has a default value of 4
+
     let image_width = std::env::args()
         .nth(1)
         .and_then(|s| s.parse().ok())
         .unwrap_or(DEFAULT_IMAGE_WIDTH);
 
-    let image_height: u32 = (image_width as f64 / ASPECT_RATIO) as u32;
+    let aspect_ratio = std::env::args()
+        .nth(2)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_ASPECT_RATIO);
+
+    let samples_per_pixel = std::env::args()
+        .nth(3)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_SAMPLES_PER_PIXEL);
+
+    let max_depth = std::env::args()
+        .nth(4)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_DEPTH);
+
+    let vfov = std::env::args()
+        .nth(5)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_VFOV);
+
+    let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     let pixels_account: u128 = image_width as u128 * image_height as u128;
 
     let world = generate_example_scene_1();
@@ -72,8 +93,8 @@ async fn main() {
         lookfrom,
         lookat,
         vup,
-        20.0,
-        ASPECT_RATIO,
+        vfov,
+        aspect_ratio,
         aperture,
         dist_to_focus,
     );
@@ -87,15 +108,6 @@ async fn main() {
         buffer.clone(),
     ));
 
-    // let mut file = std::fs::File::create("temp/image.ppm").unwrap();
-    // let mut contents = String::new();
-
-    // contents.push_str("P3\n");
-    // contents.push_str(&format!("{} {}\n", image_width, image_height));
-    // contents.push_str("255\n");
-
-    // let mut outer_contents = Vec::<String>::new();
-
     let bar = ProgressBar::new((image_height * image_width) as u64);
     bar.set_style(
         ProgressStyle::with_template(
@@ -105,39 +117,18 @@ async fn main() {
         .progress_chars("##-"),
     );
 
-    main_render(image_width, image_height, world, camera, &bar, buffer);
+    main_render(
+        image_width,
+        image_height,
+        samples_per_pixel,
+        max_depth,
+        world,
+        camera,
+        &bar,
+        buffer,
+    );
 
-    // (0..image_height)
-    //     .into_par_iter()
-    //     .rev()
-    //     .map(|j| {
-    //         // println!("Scanlines remaining: {}", j);
-    //         let mut inter_contents = Vec::<String>::new();
-    //         (0..image_width)
-    //             .into_par_iter()
-    //             .map(|i| {
-    //                 let pixel_color = (0..SAMPLES_PER_PIXEL)
-    //                     .map(|_| {
-    //                         let u = (i as f64 + random_double()) / (image_width - 1) as f64;
-    //                         let v = (j as f64 + random_double()) / (image_height - 1) as f64;
-    //                         let r = camera.get_ray(u, v);
-    //                         ray_color(r, &world.read().unwrap(), MAX_DEPTH)
-    //                     })
-    //                     .fold(Color::new(0.0, 0.0, 0.0), |acc, x| acc + x);
-    //                 bar.inc(1);
-    //                 write_color(pixel_color, SAMPLES_PER_PIXEL)
-    //             })
-    //             .collect_into_vec(&mut inter_contents);
-    //         inter_contents.join("")
-    //     })
-    //     .collect_into_vec(&mut outer_contents);
-
-    // contents.push_str(outer_contents.join("").as_str());
     bar.finish();
-
-    // file.write_all(contents.as_bytes()).unwrap();
-
-    // println!("Done.");
 
     let end = std::time::Instant::now();
     let duration = end.duration_since(start);
@@ -145,10 +136,4 @@ async fn main() {
     println!("Score: {:?}", pixels_account * 1000 / milliseconds);
 
     loop {}
-
-    // let img = image::open("temp/image.ppm").expect("Failed to open image");
-
-    // // 将图像保存为 PNG 文件
-    // img.save(Path::new("temp/image.png"))
-    //     .expect("Failed to save image");
 }
