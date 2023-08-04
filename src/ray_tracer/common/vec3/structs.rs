@@ -78,3 +78,13 @@ impl Color {
         )
     }
 }
+
+// handle Color to u32
+impl From<Color> for u32 {
+    fn from(color: Color) -> Self {
+        let r = (255.999 * color.x()) as u32;
+        let g = (255.999 * color.y()) as u32;
+        let b = (255.999 * color.z()) as u32;
+        (r << 16) | (g << 8) | b
+    }
+}

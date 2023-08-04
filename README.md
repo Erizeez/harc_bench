@@ -12,6 +12,8 @@ This package is intend to use as many CPU resources as possible.
 
 This package is currently in development and has a initially runnable version.
 
+First release is ready.
+
 ## Usage
 
 ```bash

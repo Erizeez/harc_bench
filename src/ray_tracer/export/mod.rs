@@ -1,6 +1,8 @@
 use crate::ray_tracer::common::extra::clamp;
 
-use super::vec3::structs::{Color, Vec3};
+use super::common::vec3::structs::{Color, Vec3};
+
+pub mod pixel;
 
 // Vec3 to_string() overload
 impl std::fmt::Display for Vec3 {
